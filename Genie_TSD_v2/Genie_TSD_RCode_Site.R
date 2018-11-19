@@ -289,12 +289,12 @@ for (x in genie_filelist) {
                    standardizeddisaggregate %in% c("AgeAboveTen/Sex/Positive",  
                                                    "AgeLessThanTen/Positive",  
                                                    "Age/Sex/HIVStatus",
-                                                   "Modality/Age/Sex/Result")         ~ "sF"),
+                                                   "Modality/Age/Sex/Result")         ~ "F"),
                
                indicator %in% c("TX_RET", "TX_PVLS")          ~
                  case_when(
                    standardizeddisaggregate %in% c("Age/Sex",
-                                                   "Age/Sex/Indication/HIVStatus")    ~ "sF"))) %>% 
+                                                   "Age/Sex/Indication/HIVStatus")    ~ "F"))) %>% 
     rename(age = agefine) %>% 
     filter(!is.na(F_C))
   
