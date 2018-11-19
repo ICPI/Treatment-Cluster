@@ -253,7 +253,8 @@ for (x in genie_filelist) {
                indicator %in% c("TX_RET","TX_PVLS")          ~
                  case_when(
                    standardizeddisaggregate %in% c("Total Numerator",
-                                                   "Total Denominator")                ~ "N",
+                                                   "Total Denominator", 
+                                                   "12mo/HIVStatus")                ~ "N",
                    standardizeddisaggregate %in% c("Age Aggregated/Sex",
                                                    "Age Aggregated/Sex/Indication/HIVStatus")               ~ "M"))) %>% 
     rename(age = agecoarse) %>% 
