@@ -825,7 +825,7 @@ final1 <-  finaltsdxx %>%
   
   
   # file name has date and time stamp (time zone sensitive)
-  file_name = paste(dt, "_TSD_Genie_", ou, "_", tm, ".txt", sep="")
+  file_name = paste(dt, "_TSD_Genie_", ou, "_", ".txt", sep="")
   
   write_tsv(final1, file_name, na="")  }
 
