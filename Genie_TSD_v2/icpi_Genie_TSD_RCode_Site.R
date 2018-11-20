@@ -800,6 +800,7 @@ final1 <-  finaltsdxx %>%
   
   
   # file name has date and time stamp (time zone sensitive)
+<<<<<<< HEAD:Genie_TSD_v2/icpi_Genie_TSD_RCode_Site.R
   file_name = paste("./Genie_TSD_v2/Output/", dt, "_TSD_Genie_", x, ".csv", sep="")
   
   write_csv(final1, file_name, na="")  
@@ -814,6 +815,9 @@ final1 <-  finaltsdxx %>%
   
   rm(list=setdiff(ls(), keepers))
   
+=======
+  file_name = paste(dt, "_TSD_Genie_", ou, "_", ".txt", sep="")
+>>>>>>> b3281c389d7dd59653a6896a339d42c07849e374:Genie_TSD_v2/Genie_TSD_RCode_Site.R
   
   }
 
