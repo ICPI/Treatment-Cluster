@@ -13,7 +13,7 @@ library(readxl)
 
 ##  File paths
 
-data_path <- "C:/Users/GHFP/Documents/data/8.15_release"
+data_path <- "C:/Users/GHFP/Documents/data/11_15_release"
 
 results_path <- "C:/Users/GHFP/Documents/ICPI/PMTCT/results"
 
@@ -43,14 +43,13 @@ map <- tibble::tribble(
 
 ## import and filtering MSD to relelvent indicators and reshaping
 
-mer <- read_rds(file.path(data_path, "MER_Structured_Dataset_OU_FY17-18_20180815_v1_1.rds"))%>%
+mer <- read_rds(file.path(data_path, "MER_Structured_Dataset_OU_IM_FY17-18_20181115_v1_2.rds"))%>%
   filter(indicator %in% indc) %>% 
   filter(disaggregate == "Total Numerator") %>% 
-  ICPIutilities::add_cumulative() %>% 
   group_by(operatingunit, indicator) %>%
-  summarise_at(vars(fy2017apr, fy2018cum, fy2017_targets, fy2018_targets), ~sum(.,na.rm = TRUE))%>%
+  summarise_at(vars(fy2017apr, fy2018apr, fy2017_targets, fy2018_targets), ~sum(.,na.rm = TRUE))%>%
   ungroup() %>% 
-  rename("2017_results" = fy2017apr, "2018_results" = fy2018cum, "2017_targets" = fy2017_targets, "2018_targets" = fy2018_targets) %>% 
+  rename("2017_results" = fy2017apr, "2018_results" = fy2018apr, "2017_targets" = fy2017_targets, "2018_targets" = fy2018_targets) %>% 
   gather(period, value, -operatingunit, -indicator) %>% 
   separate(period, c("year", "type"), sep = "_") %>% 
   mutate_at(vars(year),~as.double(.)) %>% 
