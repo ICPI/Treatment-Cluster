@@ -1,4 +1,4 @@
-memory.limit(size=90000000)
+memory.limit(size=10000000)
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -142,7 +142,8 @@ datim <- readRDS("./Genie_TSD_v2/RawData/Site_IM_All_OUs_Genie_FY18Q4_11_16.rds"
   setdiff(ou$operatingunit, natou$operatingunit)
   setdiff(natou$operatingunit, ou$operatingunit)
 
-oulist <- as.vector(ou$operatingunit)  
+oulist <- as.vector(ou$operatingunit)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ============= END: Pulling in required datasets ~~~~~~~============
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -789,7 +790,15 @@ final1 <-  finaltsdxx %>%
            TX_PVLS_Now_D,
            TX_PVLS_Now_N) %>% 
   # Putting a space before the age band to avoid conversion to date in Excel
-  mutate(age = paste(" ", age, sep=""))
+  mutate(age = paste(" ", age, sep="")) %>% 
+  # Removing SNU prioritization junk strings
+  mutate(snuprioritization = 
+           if_else(snuprioritization %in% c("", "~"), 
+                   "", snuprioritization)) %>% 
+  mutate(facilityprioritization = 
+           if_else(facilityprioritization %in% c("", "~"), 
+                   "", facilityprioritization)) 
+  
   
   
   
@@ -800,7 +809,6 @@ final1 <-  finaltsdxx %>%
   
   
   # file name has date and time stamp (time zone sensitive)
-<<<<<<< HEAD:Genie_TSD_v2/icpi_Genie_TSD_RCode_Site.R
   file_name = paste("./Genie_TSD_v2/Output/", dt, "_TSD_Genie_", x, ".csv", sep="")
   
   write_csv(final1, file_name, na="")  
@@ -815,10 +823,7 @@ final1 <-  finaltsdxx %>%
   
   rm(list=setdiff(ls(), keepers))
   
-=======
-  file_name = paste(dt, "_TSD_Genie_", ou, "_", ".txt", sep="")
->>>>>>> b3281c389d7dd59653a6896a339d42c07849e374:Genie_TSD_v2/Genie_TSD_RCode_Site.R
-  
+
   }
 
 
