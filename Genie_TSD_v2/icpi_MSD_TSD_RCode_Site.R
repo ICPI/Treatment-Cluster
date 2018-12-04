@@ -150,7 +150,7 @@ for (x in genie_filelist) {
   foonames <- tolower(names(foo))
   
   # Checking whether the zipped file is a Genie file
-  msdvars <- c("psnu", "psnuuid", "approvallevel")
+  msdvars <- c("psnu", "psnuuid")
   if(!all(msdvars %in% foonames)){
     stop("ERROR: This is not a Genie file! Please check uploaded file")
   } else {"You set the Genie free... woot woot"}
