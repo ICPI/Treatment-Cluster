@@ -761,6 +761,9 @@ for (x in genie_filelist) {
   
 xmerp <- unique(nonmer$psnuuid)
 
+finaltsdxx <- finaltsdxx %>% 
+  mutate(approvallevel=NA)
+
 final1 <-  finaltsdxx %>% 
   mutate(snu1 = if_else(psnuuid %in% xmerp, "Non_MER", snu1)) %>% 
   mutate(psnu = if_else(psnuuid %in% xmerp, "Non_MER", psnu)) %>% 
@@ -789,6 +792,7 @@ final1 <-  finaltsdxx %>%
            age,
            sex,
            datatype,
+           approvallevel,
            TX_CURR_NAT  ,
            TX_CURR_SUBNAT      ,    
            PLHIV    ,
