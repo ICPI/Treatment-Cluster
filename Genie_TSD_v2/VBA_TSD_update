@@ -1,0 +1,69 @@
+'variables
+    Public compl_fldr As String
+    Public tmplWkbk As Workbook
+    Public OpUnit As Variant
+    Public SelectedOpUnits As Variant
+    Public OUcompl_fldr As String
+    Public LastRow As Long
+    Public LastCol As Long
+    Public dataWkbk As Workbook
+
+Sub itsd_pop()
+
+    Application.ScreenUpdating = False
+    
+    'set directory where you will compile final tools
+        compl_fldr = "C:\Temp_work\TSD_finaltools\"
+    'set template
+        Set tmplWkbk = ActiveWorkbook
+    'no site data now --> delete Site TX_NET_NEW tab
+        Application.DisplayAlerts = False
+    'for each OU
+        tmplWkbk.Sheets("RawData").Visible = True
+        tmplWkbk.Sheets("rsx").Visible = True
+        tmplWkbk.Sheets("rsx").Activate
+        Set SelectedOpUnits = tmplWkbk.Sheets("rsx").Range(Cells(2, 2), Cells(6, 2))
+        For Each OpUnit In SelectedOpUnits
+        ' open csv
+            Workbooks.Open Filename:= _
+                 "C:\Temp_work\icpi_tsd_update\Output\2018_12_28_Genie_TSD_" & OpUnit & ".csv"
+            Set dataWkbk = Workbooks("2018_12_28_Genie_TSD_" & OpUnit & ".csv")
+        'count rows to import over
+            LastRow = Workbooks("2018_12_28_Genie_TSD_" & OpUnit & ".csv").Sheets(1).Range("A1").CurrentRegion.Rows.Count
+            LastCol = Workbooks("2018_12_28_Genie_TSD_" & OpUnit & ".csv").Sheets(1).Range("A1").CurrentRegion.Columns.Count
+        'copy over rows to bring in from csv to template
+            dataWkbk.Sheets(1).Activate
+            ActiveSheet.Range("A2:AI" & LastRow).Copy
+             tmplWkbk.Sheets("RawData").Activate
+             ActiveSheet.Range("A2").Select
+            ActiveSheet.Paste
+            Application.CutCopyMode = False
+        'hide background tabs
+            tmplWkbk.Sheets("RawData").Visible = False
+            tmplWkbk.Sheets("rsx").Visible = False
+        'refresh all pivot tables
+            tmplWkbk.RefreshAll
+        'collapse pivot table for site-level pivot
+            tmplWkbk.Sheets("TSD Summary Table (Site)").Activate
+            ActiveSheet.PivotTables("Site_Pivot").PivotFields("site_name").ShowDetail = False
+        'open to main page
+            tmplWkbk.Sheets("Info").Select
+        'save OU specific file
+            Application.DisplayAlerts = False
+            fname = compl_fldr & "Treatment Summary Dashboard (TSD)_" & OpUnit & "_18Q4_Cleaned Data_2018 12 28.xlsb"
+            ActiveWorkbook.SaveAs Filename:=fname, FileFormat:=50
+            Application.DisplayAlerts = True
+        'clear out data for next OU
+            tmplWkbk.Sheets("RawData").Visible = True
+            tmplWkbk.Sheets("RawData").Activate
+            ActiveSheet.Range("A2").Select
+            tmplWkbk.Sheets("RawData").Range("A3:AI" & LastRow).Select
+            Selection.Delete
+            dataWkbk.Close
+        
+    Next OpUnit
+    
+     Application.ScreenUpdating = True
+     
+End Sub
+
