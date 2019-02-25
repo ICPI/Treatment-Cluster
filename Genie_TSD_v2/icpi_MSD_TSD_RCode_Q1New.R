@@ -19,8 +19,6 @@ memory.limit(size=10000000)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ============= Load required packages ~~~~~~~==================
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 if(!require(devtools)){
   install.packages("devtools")
 }
@@ -55,15 +53,9 @@ library(tidyverse)
 
 
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ============= END: Load required packages ~~~~~~~==================
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ============= Functions used in code ~~~~~~~===============
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 # Creating basic functions to show top few rows of data
 View50 <- function(x){View(x[1:50,])}
 View100 <- function(x){View(x[1:100,])}
@@ -71,18 +63,11 @@ View100 <- function(x){View(x[1:100,])}
 # Creating the 'not in' function
 `%ni%` <- Negate(`%in%`) 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ============= END: Functions used in code ~~~~~~~===============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ======== Pulling in all NAT_SUBNAT dataset ~~~~~~~============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ============= Pulling in the Genie data ~~~~~~~===============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Getting the Genie dataset file names
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ============= Getting column header data types for MSDs ===============
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Getting the MSD dataset file names
 glist <- list.files("../RawData/MSDs/"
                     , pattern="MER")
 
@@ -95,20 +80,18 @@ foo <- read_tsv(file=gfile_loc,
 
 foonames <- tolower(names(foo))
 
-file.remove(gfile_loc)
 
-
-# Genie substitute
-genieloc <- list.files("../RawData/Genie_test/"
-                       , pattern="Genie")
-genielocx <- paste("../RawData/Genie_test/", genieloc[1], sep="")
-
-# Rough data pull to get variable names and assign datatype
-foox <- read_tsv(file=genielocx, 
-                col_names = TRUE, n_max = 0)   
-
-foonamesx <- tolower(names(foox))
-
+# # Genie substitute
+# genieloc <- list.files("../RawData/Genie_test/"
+#                        , pattern="Genie")
+# genielocx <- paste("../RawData/Genie_test/", genieloc[1], sep="")
+# 
+# # Rough data pull to get variable names and assign datatype
+# foox <- read_tsv(file=genielocx, 
+#                 col_names = TRUE, n_max = 0)   
+# 
+# foonamesx <- tolower(names(foox))
+# 
 
 # # For Genie
 # colvecx <- as.vector(ifelse(grepl("fy", foonamesx), "d", "c"))
@@ -125,27 +108,24 @@ foonamesx <- tolower(names(foox))
 # datim <- genie %>% select(-approvallevel, -approvalleveldescription)
 
 # Creating the vector of column types
-colvecx <- as.vector(ifelse(foonames %in% c("fy2018_targets",          
-                                            "fy2018q1"      ,           
-                                            "fy2018q2"      ,           
-                                            "fy2018q3"      ,           
-                                            "fy2018q4"      ,           
-                                            "fy2018apr"     ,           
-                                            "fy2019_targets",           
-                                            "fy2019q1"), "d", "c"))
+colvecx <- as.vector(ifelse(grepl("fy", foonames), "d", "c"))
+
+# colvecx <- as.vector(ifelse(foonames %in% c("FILL IN STUFF HERE"  ), "d", "c"))
 
 colvec <- paste(colvecx, collapse = '')
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ============= Setting up date and time variables ~~~~~~~======
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Pulling in the data with correct datatype for variables  
-datim <- read_tsv(file=gfile_loc, 
-                  col_names = TRUE,
-                  col_types = colvec)      # ending if-else for Genie check
-
-names(datim) <- tolower(names(datim))  
+curr_year <- identifypd(foo, pd_type = "year")
+curr_q    <- identifypd(foo, pd_type = "quarter")
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ======== Pulling in all NAT_SUBNAT dataset ~~============
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Reading in the reconciled NAT_SUBNAT dataset created by Abe
 art <- read_csv("../RawData/ART_Coverage_2018-12-19.csv",
                 col_types = cols(region = "c",
@@ -162,41 +142,7 @@ art <- read_csv("../RawData/ART_Coverage_2018-12-19.csv",
 
 natx <- art %>% select(-HTS_TST_POS, -ART_COVERAGE, -TX_CURR)
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ======== END: Pulling in all NAT_SUBNAT dataset ~~============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ======== Pulling in Global Site-IM R dataset ~~~~~============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
-names(datim) <- tolower(names(datim))  
-
-# Pulling in NAT_SUBNAT data ~~~~~~~~~~~~~~~~~~~~~~
-# getting the ou variable from the Genie extract
-# to subset the global Nat-Subnat dataset
-ou <- unique(datim$operatingunit)
-natou <- unique(natx$operatingunit)
-
-
-# Checking if OU names match  
-
-setdiff(ou, natou)
-setdiff(natou, ou)
-
-
-oulist <- ou[c(7:35)]
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ======== END: Pulling in Global Site-IM R dataset ============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ============= Setting up date and time variables ~~~~~~~======
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-curr_year <- identifypd(datim, pd_type = "year")
-curr_q    <- identifypd(datim, pd_type = "quarter")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ============= END: Setting up date and time variables ~~======
@@ -210,21 +156,37 @@ curr_q    <- identifypd(datim, pd_type = "quarter")
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-for (x in oulist) {
+tsd_msd_run <- function(x) {
+  
+  gfile_loc <- paste("../RawData/MSDs/", x, sep="") 
+  
+  # Pulling in the data with correct datatype for variables  
+  datim <- read_tsv(file=gfile_loc, 
+                    col_names = TRUE,
+                    col_types = colvec)      # ending if-else for Genie check
+  
+  names(datim) <- tolower(names(datim))  
+  
+  
+# Getting the OU name
+  oux <- read_tsv(file=gfile_loc, 
+                    col_names = TRUE,
+                    col_types = colvec,
+                  n_max = 1) 
+                  
+  ouname <- as.vector(oux$OperatingUnit)
 
-  # # Keeping only data for country of interest
-  datimx <- datim %>% filter(operatingunit %in% x) 
-
+                      
   #Vector of string variables
-  char_varx <- names(datimx %>% select_if(is.character))
+  char_varx <- names(datim %>% select_if(is.character))
   # getting rid of SNU prioritization
   char_var <- char_varx[!grepl("prioritization", char_varx)]
   
   
   #Vector of numeric variables
-  num_var <- names(datimx %>% select(starts_with("fy")))
-  curr_fy_res <- names(datimx %>% select(starts_with(paste("fy", curr_year, "q", sep=""))))
-  prev_fy_res <- names(datimx %>% select(starts_with(paste("fy", curr_year-1, "q", sep=""))))
+  num_var <- names(datim %>% select(starts_with("fy")))
+  curr_fy_res <- names(datim %>% select(starts_with(paste("fy", curr_year, "q", sep=""))))
+  prev_fy_res <- names(datim %>% select(starts_with(paste("fy", curr_year-1, "q", sep=""))))
   
   yr <- paste("fy", as.character(curr_year), sep="")    
   prev_yr <- paste("fy", as.character(curr_year-1), sep="")
@@ -247,7 +209,7 @@ for (x in oulist) {
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
   
   #### restructuring FactView dataset into long format 
-  datim1 <- datimx %>% 
+  datim1 <- datim %>% 
     # filter for indicators needed for TSD
     filter(indicator %in% indlist) %>%
     select(char_var, num_var) %>% 
@@ -318,7 +280,7 @@ for (x in oulist) {
       age = 
         case_when(
           F_C=="N"                                      ~ "",
-          F_C %in% c("M","F", "sF") & age==""                 ~ "Unknown Age",
+          F_C %in% c("M","F", "sF") & age==""           ~ "Unknown Age",
           TRUE                                          ~ age)) %>% 
     mutate(  
       sex = 
@@ -379,17 +341,12 @@ for (x in oulist) {
   d5 <-  d4 %>% 
     mutate(var_suffix = 
              case_when(
-               indicator %ni% c("TX_PVLS") ~
-                 case_when (
-                   colvar=="curr_result"              ~ "Now_R",
-                   colvar=="curr_target"              ~ "Now_T",
-                   colvar=="prev_result"              ~ "Prev_R"),
-               indicator %in% c("TX_PVLS") ~
-                 case_when (
-                   numeratordenom=="N" & colvar=="curr_result"     ~ "Now_N",
-                   numeratordenom=="D" & colvar=="curr_result"     ~ "Now_D")
-             )
-    ) %>% 
+             indicator %ni% c("TX_PVLS") & colvar=="curr_result"  ~ "Now_R",
+             indicator %ni% c("TX_PVLS") & colvar=="curr_target"  ~ "Now_T",
+             indicator %ni% c("TX_PVLS") & colvar=="prev_result"  ~ "Prev_R",
+             indicator %in% c("TX_PVLS") & numeratordenom=="N" & colvar=="curr_result" ~ "Now_N",
+             indicator %in% c("TX_PVLS") & numeratordenom=="D" & colvar=="curr_result" ~ "Now_D")
+           ) %>% 
     filter(!is.na(var_suffix)) %>%
     ungroup() %>% 
     mutate(varname = paste(indicator, var_suffix, sep="_")) %>% 
@@ -528,14 +485,11 @@ for (x in oulist) {
   
   rm(d6, d6a)
   
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ============= END: Restructuring MER dataset ~~~~~~~============
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ============= Restructuring NAT_SUBNAT datasets ~~~===========
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-nat <- natx %>% filter(operatingunit %in% x)
+nat <- natx %>% filter(operatingunit %in% ouname)
   
   if(nrow(nat)>0){
     "Woohoo! Epi data is good!"
@@ -567,7 +521,7 @@ nat <- natx %>% filter(operatingunit %in% x)
   
   
   # Adding SNUprioritization for most recent period 
-  geo_frame_mer <- datimx %>% 
+  geo_frame_mer <- datim %>% 
     select(psnuuid, snuprioritization, curr_fy_res) %>%
     gather(period, value, curr_fy_res) %>% 
     select(psnuuid, snuprioritization, period) %>%
@@ -587,7 +541,7 @@ nat <- natx %>% filter(operatingunit %in% x)
   finaltsdx <- left_join(finaltsd, geo_frame_mer) 
   
   # Adding facility PR  for most recent period 
-  geo_frame_site <- datimx %>% 
+  geo_frame_site <- datim %>% 
     select(orgunituid, facilityprioritization, curr_fy_res) %>%
     gather(period, value, curr_fy_res) %>% 
     select(orgunituid, facilityprioritization, period) %>%
@@ -708,27 +662,26 @@ final1 <- bind_rows(final_mer, final_nonmer) %>%
   dx <- as.character(Sys.Date())
   dt <- str_replace_all(dx, "[- ]", "_")
   
-  oux <- gsub("[ |']", "", x)
+  ounamex <- gsub("[ |']", "", ouname)
   # file name has date and time stamp (time zone sensitive)
-  file_name = paste("Y:/Treatment-Cluster/", dt, "_MSD_TSD_", ou, ".csv", sep="")
+  file_name = paste("../tsd_output/", dt, "_MSD_TSD_", ounamex, ".csv", sep="")
   
   write_csv(final1, file_name, na="")  
   
-  keepers <- c("datim",
+  keepers <- c("glist",
                "natx",
-               "ou",
-               "oulist",
+               "colvec",
                "%ni%",
                "curr_year",
                "curr_q")
-  
+
   rm(list=setdiff(ls(), keepers))
-  
+
 
   }
 
-# 
-# map( .x = oulist, .f = ~tsdrun(.x))
+# Running the function on all datasets using the PURR package in Tidyverse
+map( .x = glist[4:17], .f = ~tsd_msd_run(.x))
 
 
 
