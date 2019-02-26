@@ -253,7 +253,7 @@ tsd_msd_run <- function(x) {
     mutate(F_C = case_when(standardizeddisaggregate
                            %in% c("Modality/Age/Sex/Result",
                                   "Age/Sex/HIVStatus",
-                                  "Age/Sex/Indication/HIVStatus")             ~ "M")) %>% 
+                                  "Age/Sex/Indication/HIVStatus")             ~ "sF")) %>% 
     rename(age = agesemifine) %>% 
     filter(!is.na(F_C))
   
@@ -264,7 +264,7 @@ tsd_msd_run <- function(x) {
     mutate(F_C = case_when(standardizeddisaggregate
                            %in% c("Modality/Age/Sex/Result",
                                   "Age/Sex/HIVStatus",
-                                  "Age/Sex/Indication/HIVStatus")             ~ "M")) %>% 
+                                  "Age/Sex/Indication/HIVStatus")             ~ "F")) %>% 
     rename(age = agefine) %>% 
     filter(!is.na(F_C))
 
@@ -681,7 +681,7 @@ final1 <- bind_rows(final_mer, final_nonmer) %>%
   }
 
 # Running the function on all datasets using the PURR package in Tidyverse
-map( .x = glist[4:17], .f = ~tsd_msd_run(.x))
+map( .x = glist, .f = ~tsd_msd_run(.x))
 
 
 
