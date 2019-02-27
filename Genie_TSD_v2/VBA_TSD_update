@@ -11,7 +11,7 @@
 Sub itsd_pop()
 
     Application.ScreenUpdating = False
-    
+
     'set directory where you will compile final tools
         compl_fldr = "C:\Temp_work\TSD_finaltools\"
     'set template
@@ -46,6 +46,9 @@ Sub itsd_pop()
         'collapse pivot table for site-level pivot
             tmplWkbk.Sheets("TSD Summary Table (Site)").Activate
             ActiveSheet.PivotTables("Site_Pivot").PivotFields("site_name").ShowDetail = False
+        'collapse pivot table for PSNU pivot
+            tmplWkbk.Sheets("TSD Summary Table (PSNU)").Activate
+            ActiveSheet.PivotTables("PivotTable2").PivotFields("PSNU").ShowDetail = False
         'open to main page
             tmplWkbk.Sheets("Info").Select
         'save OU specific file
@@ -60,10 +63,9 @@ Sub itsd_pop()
             tmplWkbk.Sheets("RawData").Range("A3:AI" & LastRow).Select
             Selection.Delete
             dataWkbk.Close
-        
-    Next OpUnit
-    
-     Application.ScreenUpdating = True
-     
-End Sub
 
+    Next OpUnit
+
+     Application.ScreenUpdating = True
+
+End Sub

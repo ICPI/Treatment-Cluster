@@ -79,36 +79,64 @@ View100 <- function(x){View(x[1:100,])}
 # ======== Pulling in all NAT_SUBNAT dataset ~~~~~~~============
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # 
-# # File path
-# n_file <- "./Genie_TSD_v2/RawData/MER_Structured_Dataset_NAT_SUBNAT_FY15-18_20181115_v1_2.txt"
-# 
-# # Rough data pull to get variable names and assign datatype
-# nfoo <- read_tsv(file=n_file, 
-#                  col_names = TRUE)
-# 
-# nfoonames <- tolower(names(nfoo))
-# 
-# # Checking whether the zipped file is a Genie file
-# natvars <- c("psnu", "psnuuid")
-# if(!all(natvars %in% nfoonames)){
-#   stop("ERROR: This is not a NAT_SUBNAT data file! Please check uploaded file")
-# } else {
-#   ":) Your dataset is a NAT_SUBNAT dataset! Woo hoo!!"
-# }
-# 
-# # Creating the vector of column types
-# ncolvecx <- as.vector(ifelse(grepl("fy20", nfoonames), "d", "c"))
-# ncolvec <- paste(ncolvecx, collapse = '')
-# 
-# # Reading in the GLOBAL Nat_subnat data in with correct column types
-# natx <- read_tsv(file=n_file,
-#                  col_types = ncolvec )
-# 
-# names(natx) <- tolower(names(natx))  
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ============= Pulling in the Genie data ~~~~~~~===============
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Getting the Genie dataset file names
+glist <- list.files("../RawData/"
+                    , pattern="genie|Genie|DHIS2")
+
+
+  gfile <- unzip(paste("../RawData/Zipped", glist[1], sep=""), 
+                 list = TRUE) %>% .$Name
+  #extract file from zipped folder
+  unzip(paste("../RawData/", glist[1], sep=""), exdir = "../RawData/unzipped")
+  
+  gfile_loc <- paste("../RawData/unzipped/", gfile, sep="") 
+
+# Rough data pull to get variable names and assign datatype
+foo <- read_tsv(file=gfile_loc, 
+                col_names = TRUE, n_max = 0)   
+
+foonames <- tolower(names(foo))
+
+file.remove(gfile_loc)
+
+# Checking whether the zipped file is a Genie file
+msdvars <- c("psnu", "psnuuid", "approvallevel")
+if(!all(msdvars %in% foonames)){
+  note2 <- "File doesn't seem like a Genie file, since it has some variables missing!"
+  stop("Fake Genie! This is not a Genie file... Please check uploaded file")
+} else {"The Genie is out of the bottle! Make your wishes come true!!"}
+
+rm(foo)
+
+# Creating the vector of column types
+colvecx <- as.vector(ifelse(foonames[grepl("fy", foonames)], "d", "c"))
+
+# Creating the vector of column types
+colvecx <- as.vector(ifelse(foonames %in% c("fy2018_targets",          
+                                            "fy2018q1"      ,           
+                                            "fy2018q2"      ,           
+                                            "fy2018q3"      ,           
+                                            "fy2018q4"      ,           
+                                            "fy2018apr"     ,           
+                                            "fy2019_targets",           
+                                            "fy2019q1"), "d", "c"))
+colvec <- paste(colvecx, collapse = '')
+
+
+
+# Pulling in the data with correct datatype for variables  
+datim <- read_tsv(file=gfile_loc, 
+                  col_names = TRUE,
+                  col_types = colvec)      # ending if-else for Genie check
+
+names(datim) <- tolower(names(datim))  
 
 
 # Reading in the reconciled NAT_SUBNAT dataset created by Abe
-art <- read_csv("./RawData/ART_Coverage_2018-12-19.csv",
+art <- read_csv("../RawData/ART_Coverage_2018-12-19.csv",
                 col_types = cols(region = "c",
                                  operatingunit = "c",
                                  countryname = "c",
@@ -130,17 +158,7 @@ natx <- art %>% select(-HTS_TST_POS, -ART_COVERAGE, -TX_CURR)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ======== Pulling in Global Site-IM R dataset ~~~~~============
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-datim <- readRDS("./RawData/Site_ALL_OU_FY18Q4_clean_12_27.rds")
 
-# foo <- read_tsv("./Genie_TSD_v2/RawData/Test_Genie.txt", col_names = T)
-# foonames <- tolower(names(foo))
-# # Creating the vector of column types
-# colvecx <- as.vector(ifelse(grepl("fy20", foonames), "d", "c"))
-# colvec <- paste(colvecx, collapse = '')
-# # Pulling in the data with correct datatype for variables  
-# datim <- read_tsv(file="./Genie_TSD_v2/RawData/Test_Genie.txt",
-#                   col_names = TRUE,
-#                   col_types = colvec)
 
 
 names(datim) <- tolower(names(datim))  
