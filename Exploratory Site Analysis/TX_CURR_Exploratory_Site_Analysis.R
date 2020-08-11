@@ -1,13 +1,14 @@
 #Exploratory Site Analysis
 #Characterizing Changes to Sites Reporting Changes to TX_CURR
 #Created: 27 May 2020
-#Last update: 15 Ju1 2020
+#Last update: 11 Aug 2020
 
 library(tidyverse)
 library(RcppRoll)
 
 #merge txt files from DATIM for global analysis
 #for replication you will need to download
+setwd("C:/Users/qkd0/OneDrive - CDC/Treatment Cluster Work/Exploratory Site Analysis/RawData/Txt Files")
 setwd("RawData/Txt Files")
 Allfiles = list.files()
 View(Allfiles)
@@ -79,7 +80,7 @@ View(tx_curr_long2)
 
 #Add rows for sites w FY19 Q4 data but no FY20 Q1 for full site drop list
 txc2020 <- tx_curr_long2 %>%
-  filter(grepl("2020",prd)) 
+  filter(grepl("2020 qtr1",prd)) 
 sites_2020 = unique(txc2020$orgunituid)
 txc2019 <- tx_curr_long2 %>%
   filter(prd == "2019 qtr4" &!(orgunituid %in% sites_2020)) %>%
@@ -188,7 +189,7 @@ tx_curr_src <- tx_curr_long3 %>%
 View(tx_curr_src)
 write_csv(tx_curr_src,"../tx_curr_src.csv", na="")
 
-
+#################################################
 #Mech Change Table
 #Recalculate TX_CURR_P by mech_code
 tx_curr_long2 <- tx_curr_long %>%
@@ -203,7 +204,7 @@ View(tx_curr_long2)
 #Create previouse mech, agency, partner columns
 tx_curr_mech <- tx_curr_long2 %>%
   group_by(orgunituid) %>%
-  select(-c(region, regionuid, operatingunituid, snu1uid, psnuuid:dreams)) %>%
+  select(-c(operatingunituid, snu1uid, psnuuid:dreams)) %>%
   mutate(mech_code_P=lag(mech_code, order_by=prdseq),
          mech_name_P=lag(mech_name, order_by=prdseq),
          agency_P=lag(fundingagency, order_by=prdseq),
@@ -228,9 +229,17 @@ tx_curr_mech_summary <- tx_curr_mech2 %>%
 #output for excel pvt manipulation, etc.
 write_csv(tx_curr_mech_summary,"../tx_curr_mech_summary.csv", na="")
 
+#################################################
 #List non-reporting sites by Qtr
 tx_curr_nr <- tx_curr_long %>%
+  #grouping variables to prevent miscounting by sites
+  #with multiple mec's/dedup's
+  group_by(orgunituid,sitename,operatingunit,
+           countryname,snu1,psnu,prd,prdseq) %>%
+  summarise(TX_CURR_R=sum(TX_CURR_R)) %>%
+  ungroup() %>%
   group_by(countryname,orgunituid) %>%
+  #calculating previous Q TX_CURR counts
   mutate(TX_CURR_P=lag(TX_CURR_R,order_by = prdseq)) %>%
   ungroup() %>%
   mutate(
@@ -242,9 +251,8 @@ tx_curr_nr <- tx_curr_long %>%
   #i.e. new sites, sites already counted when dropped in previous
   #reporting period
   filter(TX_CURR_R == 0, nr_site == 1, prd != "2019 qtr1") %>%
-  select(countryname,snu1,psnu,sitename,fundingagency,primepartner,
+  select(countryname,snu1,psnu,sitename,
          prd,TX_CURR_R,TX_CURR_P)
 
 #output for excel pvt manipulation, etc.
 write_csv(tx_curr_nr,"../tx_curr_nr_site.csv", na="")
-
