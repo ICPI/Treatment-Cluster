@@ -1,13 +1,13 @@
 #Ad hoc request: TX_ML Completeness
 #Q: What % of TX sites report TX_ML?
-#Data pulled: 12 Aug 2020 (Daily SitexIM MSDs)
+#Data pulled: 13 Aug 2020 (Frozen SitexIM MSDs)
 #Last update: 13 Aug 2020
 
 library(tidyverse)
 
 #merge txt files from DATIM for global analysis
 #for replication you will need to download
-setwd("C:/Users/qkd0/OneDrive - CDC/Treatment Cluster Work/TX_ML/RawData/Txt Files")
+setwd("C:/Users/qkd0/OneDrive - CDC/Treatment Cluster Work/TX_ML/RawData/Frozen")
 Allfiles = list.files()
 View(Allfiles)
 for (file in Allfiles){
@@ -27,7 +27,8 @@ for (file in Allfiles){
 #at other disags for ML completion. 
 df2 <- df1 %>%
   filter(standardizeddisaggregate=="Total Numerator",
-         fiscal_year == "2020") %>% 
+         fiscal_year == "2020",
+         indicator == "TX_CURR" | indicator == "TX_ML") %>% 
   unique() %>%
   group_by_at(vars(orgunituid:psnu,fiscal_year,indicator)) %>%
   summarise_at(vars(qtr1:qtr2), sum, na.rm=T) %>%
@@ -43,9 +44,9 @@ df_long <- df2 %>%
   pivot_wider(names_from = indicator, values_from = val) %>%
   #add reporting variables; including sites that rpt 0 vals.
   mutate(
-    txc_rpt = if_else(!is.na(TX_CURR),1,0),
+    txc_rpt = if_else(TX_CURR > 0,1,0),
     txml_rpt = if_else(!is.na(TX_ML),1,0),
-    txml_nocurr = if_else(is.na(TX_CURR) & !is.na(TX_ML),1,0)
+    txml_nocurr = if_else((is.na(TX_CURR)|TX_CURR<0) & !is.na(TX_ML),1,0)
   ) 
 
 #Summary table at OU level
@@ -60,6 +61,6 @@ txml_OU_summary <- df_long %>%
 
 
 #output for dissemination
-write_csv(df_long,"../txml_sitelevel.csv", na="")
-write_csv(txml_OU_summary,"../txml_OU_summary.csv", na="")
+write_csv(df_long,"../txml_sitelevel_frozen.csv", na="")
+write_csv(txml_OU_summary,"../txml_OU_summary_frozen.csv", na="")
 
