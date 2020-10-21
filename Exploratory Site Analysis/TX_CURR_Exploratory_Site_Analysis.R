@@ -1,15 +1,16 @@
 #Exploratory Site Analysis
 #Characterizing Changes to Sites Reporting Changes to TX_CURR
 #Created: 27 May 2020
-#Last update: 11 Aug 2020
+#Last update: 23 Sep 2020
+
+
+.libPaths("C:/Users/qkd0/Libraries") #Note - I had to adjust lib paths for R to recognize librariess; future users can remove
 
 library(tidyverse)
 library(RcppRoll)
 
 #merge txt files from DATIM for global analysis
 #for replication you will need to download
-setwd("C:/Users/qkd0/OneDrive - CDC/Treatment Cluster Work/Exploratory Site Analysis/RawData/Txt Files")
-setwd("RawData/Txt Files")
 Allfiles = list.files()
 View(Allfiles)
 for (file in Allfiles){
@@ -29,12 +30,13 @@ df1 <- unique(df1)
 #merge targets and column rows for later pivotting
 df2 <- df1 %>%
   group_by_at(vars(orgunituid:fiscal_year)) %>%
-  summarise_at(vars(targets:cumulative), sum, na.rm=T)
+  summarise_at(vars(targets:cumulative), sum, na.rm=T) %>%
+  filter(fiscal_year != 2018)
 
 #QC test summarizing retained appropriate values
 test1 <- df1 %>%
   group_by(orgunituid,fiscal_year) %>%
-  filter(indicator == "TX_CURR") %>%
+  filter(indicator == "TX_CURR", fiscal_year != 2018) %>%
   summarize_at(vars(targets:cumulative), sum, na.rm=TRUE) 
   View(test1)
 test2 <- df2 %>%
@@ -66,8 +68,11 @@ rm(df1,df2,Allfiles,test1,test2)
 
 #Add TX_CURR_P
 tx_curr_long <- df_long %>%
-  filter(indicator=="TX_CURR", !grepl("targets",prd), !grepl("cumulative",prd), !grepl("2020 qtr3",prd), !grepl("2020 qtr4",prd), !grepl("2021",prd)) %>% 
+  filter(indicator=="TX_CURR", !grepl("targets",prd), !grepl("cumulative",prd), !grepl("2020 qtr4",prd), !grepl("2021",prd)) %>% 
   rename(TX_CURR_R = val) #filter will need to be updated with quarterly data updates
+
+#tx_curr_long_cdc <- filter(tx_curr_long, grepl("CDC",fundingagency))
+#tx_curr_long_usaid <- filter(tx_curr_long, grepl("USAID",fundingagency))
 
 tx_curr_long2 <- tx_curr_long %>%
   group_by_at(vars(orgunituid:psnuuid,prd,prdseq)) %>%
@@ -179,7 +184,6 @@ tx_curr_long3 <- tx_curr_long3 %>%
 #for QC purposes only
 #write_csv(tx_curr_long3,"../tx_curr_sitex.csv", na="")
 
-
 tx_curr_src <- tx_curr_long3 %>%
   group_by(countryname,snu1,psnu,prd) %>%
   summarize_at(vars(sites,TX_CURR_R,site_drop,tx_curr_drop,site_add,
@@ -190,44 +194,99 @@ View(tx_curr_src)
 write_csv(tx_curr_src,"../tx_curr_src.csv", na="")
 
 #################################################
-#Mech Change Table
-#Recalculate TX_CURR_P by mech_code
-tx_curr_long2 <- tx_curr_long %>%
-  group_by_at(vars(orgunituid:mech_name,prd,prdseq)) %>%
-  summarize_at(vars(TX_CURR_R), sum, na.rm=TRUE) %>%
+#Mech Change Table: ALL CODE IS DRAFT 
+#Generate mechN to id sites reporting multiple mechs, transpose wide
+mechtest = subset(tx_curr_long, select = -c(pre_rgnlztn_hq_mech_code:modality)) #subset data to summarize TX_CURR at mech level
+mechtest2 <- mechtest %>%
+  group_by(orgunituid,sitename,countryname,fundingagency,primepartner,
+           snu1,psnu,mech_name,mech_code,prd,prdseq) %>%
+  summarise(TX_CURR_R = sum(TX_CURR_R)) %>%
   ungroup() %>%
-  group_by(countryname,orgunituid,mech_code) %>%
-  mutate(TX_CURR_P=lag(TX_CURR_R,order_by = prdseq)) %>%
+  group_by(orgunituid,prd) %>%
+  mutate(
+    #merge mech code and name to single variable for ease of use
+    mechCodeName = paste(mech_code,"-",mech_name),
+    #count distinct mech codes
+    mechN = length(unique(mechCodeName))
+  ) %>%
+  select(-mech_code,-mech_name) %>%
   ungroup()
-View(tx_curr_long2)
+  
+#Convert mechN to sequential count
+mechtest3 <- mechtest2 %>%
+  group_by(orgunituid,prd) %>%
+  mutate(
+    mechN2 = paste(1:n())
+  ) %>%
+  pivot_wider(names_from = mechN2, 
+              names_sep = "_",
+              values_from = c(fundingagency,primepartner,mechCodeName,TX_CURR_R))
 
-#Create previouse mech, agency, partner columns
-tx_curr_mech <- tx_curr_long2 %>%
+mechtest4 <- mechtest3 %>%
   group_by(orgunituid) %>%
-  select(-c(operatingunituid, snu1uid, psnuuid:dreams)) %>%
-  mutate(mech_code_P=lag(mech_code, order_by=prdseq),
-         mech_name_P=lag(mech_name, order_by=prdseq),
-         agency_P=lag(fundingagency, order_by=prdseq),
-         partner_P=lag(primepartner, order_by=prdseq)) %>%
-  filter(prd != "2019 qtr1") %>%
-  rename(mech_code_C = mech_code,
-         mech_name_C = mech_name,
-         agency_C = fundingagency,
-         partner_C = primepartner) %>%
-  ungroup()
+  mutate(
+    mechN_P = lag(mechN, order_by = prdseq),
+    fundingagency1_P=lag(fundingagency_1, order_by=prdseq),
+    fundingagency2_P=lag(fundingagency_2, order_by=prdseq),
+    fundingagency3_P=lag(fundingagency_3, order_by=prdseq),
+    fundingagency4_P=lag(fundingagency_4, order_by=prdseq),
+    fundingagency5_P=lag(fundingagency_5, order_by=prdseq),
+    fundingagency6_P=lag(fundingagency_6, order_by=prdseq),
+    primepartner1_P=lag(primepartner_1, order_by=prdseq),
+    primepartner2_P=lag(primepartner_2, order_by=prdseq),
+    primepartner3_P=lag(primepartner_3, order_by=prdseq),
+    primepartner4_P=lag(primepartner_4, order_by=prdseq),
+    primepartner5_P=lag(primepartner_5, order_by=prdseq),
+    primepartner6_P=lag(primepartner_6, order_by=prdseq),
+    mechCodeName1_P=lag(mechCodeName_1, order_by=prdseq),
+    mechCodeName2_P=lag(mechCodeName_2, order_by=prdseq),
+    mechCodeName3_P=lag(mechCodeName_3, order_by=prdseq),
+    mechCodeName4_P=lag(mechCodeName_4, order_by=prdseq),
+    mechCodeName5_P=lag(mechCodeName_5, order_by=prdseq),
+    mechCodeName6_P=lag(mechCodeName_6, order_by=prdseq),
+    TX_CURR1_P=lag(TX_CURR_R_1, order_by=prdseq),
+    TX_CURR2_P=lag(TX_CURR_R_2, order_by=prdseq),
+    TX_CURR3_P=lag(TX_CURR_R_3, order_by=prdseq),
+    TX_CURR4_P=lag(TX_CURR_R_4, order_by=prdseq),
+    TX_CURR5_P=lag(TX_CURR_R_5, order_by=prdseq),
+    TX_CURR6_P=lag(TX_CURR_R_6, order_by=prdseq),
+  ) %>%
+  ungroup() %>%
+  #filter out sites with no previous records for mech change calc
+  filter(prd != "2019 qtr1",
+         !is.na(fundingagency1_P)&!is.na(primepartner1_P)&
+           !is.na(mechCodeName1_P)&!is.na(TX_CURR1_P)) %>%
+  #calculate possible mech change 
+  mutate(mechchange = case_when(
+    mechN != mechN_P ~ 1, 
+    mechN == 1 & (mechCodeName_1 != mechCodeName1_P) ~ 1,
+    mechN == 2 & (mechCodeName_1 != mechCodeName1_P|mechCodeName_2 != mechCodeName2_P) ~ 1,
+    mechN == 3 & (mechCodeName_1 != mechCodeName1_P|mechCodeName_2 != mechCodeName2_P|mechCodeName_3 != mechCodeName3_P) ~ 1,
+    mechN == 4 & (mechCodeName_1 != mechCodeName1_P|mechCodeName_2 != mechCodeName2_P|mechCodeName_3 != mechCodeName3_P|mechCodeName_4 != mechCodeName4_P) ~ 1,
+    mechN == 5 & (mechCodeName_1 != mechCodeName1_P|mechCodeName_2 != mechCodeName2_P|mechCodeName_3 != mechCodeName3_P|mechCodeName_4 != mechCodeName4_P|mechCodeName_5 != mechCodeName5_P) ~ 1,
+    mechN == 6 & (mechCodeName_1 != mechCodeName1_P|mechCodeName_2 != mechCodeName2_P|mechCodeName_3 != mechCodeName3_P|mechCodeName_4 != mechCodeName4_P|mechCodeName_5 != mechCodeName5_P|mechCodeName_6 != mechCodeName6_P) ~ 1
+  ))
+           
+  
+#QC Checks - subset by mech count for quick previews
 
-#Filter to only sites with mech changes, no dedups
-tx_curr_mech2 <- tx_curr_mech %>%
-  filter(mech_code_C != mech_code_P, 
-         agency_C != "Dedup", 
-         agency_P != "Dedup")
 
-tx_curr_mech_summary <- tx_curr_mech2 %>%
-  select(countryname,snu1,psnu,sitename,agency_P,agency_C,partner_P,
-         partner_C,prd,TX_CURR_P,TX_CURR_R) 
+#cut and remerge multi-mechs into single columns
+mechchange <- mechtest4 %>%
+  filter(mechchange == 1)
+
+mt5 <- mechtest4 %>% 
+  #repivot each var and filter N/A's to remove duplicate
+  #rows from the reshape
+  pivot_longer(c(mechCodeName_1:mechCodeName_6), names_to = "mechseq", values_to="mechCodeName") %>%
+  filter(!is.na(mechCodeName)) %>% 
+  pivot_longer(c(mechCodeName1_P:mechCodeName6_P), names_to = "mechseqP", values_to="mechCodeName_P") %>%
+  filter(!is.na(mechCodeName_P)) 
+
+
 
 #output for excel pvt manipulation, etc.
-write_csv(tx_curr_mech_summary,"../tx_curr_mech_summary.csv", na="")
+write_csv(mechchange,"../mechchange.csv", na="")
 
 #################################################
 #List non-reporting sites by Qtr
